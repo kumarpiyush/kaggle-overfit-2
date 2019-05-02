@@ -1,18 +1,32 @@
 import sys
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
+from sklearn.svm import SVC
+
+EPS = 0.1**7
 
 class Model() :
     def __init__(self) :
         self.lr = LogisticRegression(penalty='l1', C=0.1)
-        self.pipeline = Pipeline(steps=[("lr", self.lr)])
+        self.svm = SVC(C=2, probability=True)
+
+    def get_consequential_features(self, features, labels) :
+        self.lr.fit(features, labels)
+
+        cons_features = []
+
+        for i in range(len(self.lr.coef_[0])) :
+            f = self.lr.coef_[0][i]
+            if f > EPS or f < -EPS :
+                cons_features.append(str(i))
+
+        return cons_features
 
     def fit(self, features, labels) :
-        self.pipeline.fit(features, labels)
+        self.svm.fit(features, labels)
 
     def predict_proba(self, features) :
-        return self.pipeline.predict_proba(features)
+        return self.svm.predict_proba(features)
 
 def main() :
     train_file = sys.argv[1]
@@ -30,6 +44,11 @@ def main() :
     print("Preprocessing done")
 
     model = Model()
+
+    cons_features = model.get_consequential_features(train_ds, train_labels)
+    train_ds = train_ds[cons_features]
+    test_ds = test_ds[cons_features]
+
     model.fit(train_ds, train_labels)
     print("Model trained")
 
