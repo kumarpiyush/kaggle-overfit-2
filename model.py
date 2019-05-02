@@ -2,13 +2,23 @@ import sys
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.gaussian_process import GaussianProcessClassifier
+from sklearn.ensemble import VotingClassifier
 
 EPS = 0.1**7
 
 class Model() :
     def __init__(self) :
         self.lr = LogisticRegression(penalty='l1', C=0.1)
-        self.svm = SVC(C=2, probability=True)
+
+        self.ensemble = VotingClassifier(estimators = [
+            ("svm", SVC(C=2, probability=True)),
+            ("lr1", LogisticRegression(penalty='l1', C=0.1)),
+            ("lr2", LogisticRegression(penalty='l2')),
+            ("tree", DecisionTreeClassifier(max_depth=2)),
+            ("gp", GaussianProcessClassifier()),
+            ], voting="soft", weights = [2,4,3,1,1])
 
     def get_consequential_features(self, features, labels) :
         self.lr.fit(features, labels)
@@ -23,10 +33,10 @@ class Model() :
         return cons_features
 
     def fit(self, features, labels) :
-        self.svm.fit(features, labels)
+        self.ensemble.fit(features, labels)
 
     def predict_proba(self, features) :
-        return self.svm.predict_proba(features)
+        return self.ensemble.predict_proba(features)[:,1]
 
 def main() :
     train_file = sys.argv[1]
@@ -55,7 +65,7 @@ def main() :
     predictions = model.predict_proba(test_ds)
     print("Inference done")
 
-    test_ds["target"] = predictions[:,1]
+    test_ds["target"] = predictions
     test_ds.to_csv(submission_file, columns=["target"])
 
 if __name__ == "__main__" :
