@@ -1,10 +1,7 @@
 import sys
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.gaussian_process import GaussianProcessClassifier
-from sklearn.ensemble import VotingClassifier
+from sklearn.ensemble import BaggingClassifier
 
 EPS = 0.1**7
 
@@ -12,13 +9,7 @@ class Model() :
     def __init__(self) :
         self.lr = LogisticRegression(penalty='l1', C=0.1)
 
-        self.ensemble = VotingClassifier(estimators = [
-            ("svm", SVC(C=2, probability=True)),
-            ("lr1", LogisticRegression(penalty='l1', C=0.1)),
-            ("lr2", LogisticRegression(penalty='l2')),
-            ("tree", DecisionTreeClassifier(max_depth=2)),
-            ("gp", GaussianProcessClassifier()),
-            ], voting="soft", weights = [2,4,3,1,1])
+        self.ensemble = BaggingClassifier(LogisticRegression(penalty='l1', C=0.1), max_samples=0.95)
 
     def get_consequential_features(self, features, labels) :
         self.lr.fit(features, labels)
@@ -55,9 +46,9 @@ def main() :
 
     model = Model()
 
-    cons_features = model.get_consequential_features(train_ds, train_labels)
-    train_ds = train_ds[cons_features]
-    test_ds = test_ds[cons_features]
+    # cons_features = model.get_consequential_features(train_ds, train_labels)
+    # train_ds = train_ds[cons_features]
+    # test_ds = test_ds[cons_features]
 
     model.fit(train_ds, train_labels)
     print("Model trained")
